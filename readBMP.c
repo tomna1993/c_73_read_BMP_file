@@ -52,6 +52,21 @@ BMP;
 
 int main(int argc, char **argv)
 {
+    if (argc <= 1 || argc > 2)
+    {
+        printf ("Usage: ./readBMP smiley.bmp\n");
+        return EXIT_FAILURE;
+    }
+
+    FILE *fp = fopen(argv[1], "rb");
+
+    if (fp == NULL)
+    {
+        printf ("Cannot open the file!\n");
+        return EXIT_FAILURE;
+    }
+
+    fclose(fp);
 
     return EXIT_SUCCESS;
 }
