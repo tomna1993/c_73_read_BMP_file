@@ -52,6 +52,13 @@ typedef struct BMP
 }
 BMP;
 
+typedef struct PIXEL
+{
+    __int8 Red;
+    __int8 Green;
+    __int8 Blue;
+}
+PIXEL;
 
 BMP func_read_bmp_header(const char *file_name);
 void func_print_BMP_info(BMP picture_struct);
@@ -69,6 +76,47 @@ int main(int argc, char **argv)
     picture = func_read_bmp_header(argv[1]);
 
     func_print_BMP_info(picture);
+
+    const int pixel_count = picture.Width * (picture.Height * -1);
+
+    // make it work with memory allocation
+    PIXEL pixel[64];
+
+    FILE *fp = fopen(argv[1], "rb");
+
+    if (fp == NULL)
+    {
+        printf ("Cannot open the file!\n");
+        return EXIT_FAILURE;
+    }
+
+    fseek(fp, picture.Data_array_address, SEEK_SET);
+
+    for (int i = 0; i < pixel_count; i++)
+    {
+        fread(&pixel[i].Red, sizeof(__int8), 1, fp);
+        fread(&pixel[i].Green, sizeof(__int8), 1, fp);
+        fread(&pixel[i].Blue, sizeof(__int8), 1, fp);
+    }
+
+    fclose(fp);
+
+    for (int i = 0; i < pixel_count; i++)
+    {
+        if (i % 8 == 0)
+        {
+            printf ("\n");
+        }
+
+        if(pixel[i].Red == 0 && pixel[i].Green == 0 && pixel[i].Blue == 0)
+        {
+            printf("1 ");
+        }
+        else
+        {
+            printf ("0 ");
+        }
+    }
 
     return EXIT_SUCCESS;
 }
@@ -183,6 +231,4 @@ void func_print_BMP_info(BMP picture_struct)
 
     // Number of important colors
     printf("Number of important colors: %i\n", picture_struct.Num_imp_col);
-
-    return EXIT_SUCCESS;
 }

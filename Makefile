@@ -12,3 +12,6 @@ all: $(SRC)
 debug: $(SRC)
 	mkdir -p build
 	$(CC) $(CFLAGS) $(SRC) -g -o $(DEST)
+
+clean:
+	rm -rf ./build
