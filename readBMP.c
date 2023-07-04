@@ -54,7 +54,7 @@ BMP;
 
 
 BMP func_read_bmp_header(const char *file_name);
-__int8 func_print_BMP_info(BMP picture_struct);
+void func_print_BMP_info(BMP picture_struct);
 
 int main(int argc, char **argv)
 {
@@ -138,7 +138,7 @@ BMP func_read_bmp_header(const char *file_name)
     return header;
 }
 
-__int8 func_print_BMP_info(BMP picture_struct)
+void func_print_BMP_info(BMP picture_struct)
 {
     // 2 bytes to identify the BMP and DIB file
     // For BMP it should be BM (0x42 0x4D in hexadecimal)
