@@ -2,7 +2,7 @@
 
 ## DESCRIPTION
 
-Read BMP file's informations into a structure.
+Read BMP file's information into a structure.
 
 [Informations about BMP file structure](https://en.wikipedia.org/wiki/BMP_file_format)
 
@@ -14,4 +14,4 @@ Read BMP file's informations into a structure.
 
 - create a structure to save all the BMP header and DIB infromation
 
-- read in all the BMP header informations and print them on screen
+- read in all the BMP header information and print them on screen
