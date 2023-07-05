@@ -1,5 +1,8 @@
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#define BYTE_IN_PIXEL 3
 
 typedef struct BMP
 {
@@ -49,19 +52,37 @@ typedef struct BMP
 
     // Number of important colors
     __int32 Num_imp_col;
+
+    // Each row length of the BMP mut be a multiple of four bytes. If there is a missing
+    // byte, f.e. the row has 1 pixel which contains 3 bytes (blue, green, red) then 
+    // there will be a missing 4th byte. That has to be inserted at the end of the row.
+    // Calculate the number of bytes to add after each row
+    __int8 Num_bytes_padding;
+
+    // If picture.Height is negative then:
+    // - read the file from top-left pixel; read rows left-rigth and top-down
+    // If picture.Height is positive then:
+    // - read the file from bottom-left pixel; read rows left-rigth and bottom-up
+    bool Is_top_down_method;
+
+    __int32 Pixel_count;
+
+    __int32 Byte_count;
 }
 BMP;
 
 typedef struct PIXEL
 {
-    __int8 Red;
-    __int8 Green;
     __int8 Blue;
+    __int8 Green;
+    __int8 Red;
 }
 PIXEL;
 
 BMP func_read_bmp_header(const char *file_name);
 void func_print_BMP_info(BMP picture_struct);
+__int8 func_read_data_array(PIXEL *pixel, const char *file_name, BMP *picture);
+
 
 int main(int argc, char **argv)
 {
@@ -77,38 +98,51 @@ int main(int argc, char **argv)
 
     func_print_BMP_info(picture);
 
-    const int pixel_count = picture.Width * (picture.Height * -1);
+
+
+    // Each row length of the BMP mut be a multiple of four bytes. If there is a missing
+    // byte, f.e. the row has 1 pixel which contains 3 bytes (blue, green, red) then 
+    // there will be a missing 4th byte. That has to be inserted at the end of the row.
+    // Calculate the number of bytes to add after each row 
+    picture.Num_bytes_padding = 4 - ((picture.Width * BYTE_IN_PIXEL) % 4);
+
+    // If picture.Height is negative then:
+    // - read the file from top-left pixel; read rows left-rigth and top-down
+    if (picture.Height < 0)
+    {
+        picture.Pixel_count = picture.Width * (picture.Height * -1);  
+        picture.Is_top_down_method = true; 
+    }
+    // If picture.Height is positive then:
+    // - read the file from bottom-left pixel; read rows left-rigth and bottom-up
+    else
+    {
+        picture.Pixel_count = picture.Width * picture.Height;
+        picture.Is_top_down_method = false;
+    }
+
+    // Declare them to be constants just to be shure I don't modify them later
+    picture.Byte_count = picture.Pixel_count * BYTE_IN_PIXEL;
 
     // make it work with memory allocation
-    PIXEL pixel[64];
+    PIXEL *pixel = calloc(picture.Byte_count, sizeof(__int8));
 
-    FILE *fp = fopen(argv[1], "rb");
+    __int8 is_error = func_read_data_array(pixel, argv[1], &picture);
 
-    if (fp == NULL)
+    if (is_error == EXIT_FAILURE)
     {
-        printf ("Cannot open the file!\n");
+        printf ("Reading the BMP data failed!\n");
         return EXIT_FAILURE;
     }
 
-    fseek(fp, picture.Data_array_address, SEEK_SET);
-
-    for (int i = 0; i < pixel_count; i++)
+    for (int i = 0; i < picture.Pixel_count; i++)
     {
-        fread(&pixel[i].Red, sizeof(__int8), 1, fp);
-        fread(&pixel[i].Green, sizeof(__int8), 1, fp);
-        fread(&pixel[i].Blue, sizeof(__int8), 1, fp);
-    }
-
-    fclose(fp);
-
-    for (int i = 0; i < pixel_count; i++)
-    {
-        if (i % 8 == 0)
+        if (i % picture.Width == 0)
         {
             printf ("\n");
         }
 
-        if(pixel[i].Red == 0 && pixel[i].Green == 0 && pixel[i].Blue == 0)
+        if((pixel + i)->Blue == 0 && (pixel + i)->Green == 0 && (pixel + i)->Red == 0)
         {
             printf("1 ");
         }
@@ -231,4 +265,34 @@ void func_print_BMP_info(BMP picture_struct)
 
     // Number of important colors
     printf("Number of important colors: %i\n", picture_struct.Num_imp_col);
+}
+
+__int8 func_read_data_array(PIXEL *pixel, const char *file_name, BMP *picture)
+{
+    FILE *fp = fopen(file_name, "rb");
+
+    if (fp == NULL)
+    {
+        printf ("Cannot open the file!\n");
+        return EXIT_FAILURE;
+    }
+
+    fseek(fp, picture->Data_array_address, SEEK_SET);
+
+    for (int i = 0; i < picture->Pixel_count; i++)
+    {
+        // After each row move the file pointer with number of padding bytes
+        if (i != 0 && (i % picture->Width) == 0)
+        {
+            fseek(fp, picture->Num_bytes_padding, SEEK_CUR);
+        }
+
+        fread(&((pixel + i)->Blue), sizeof(__int8), 1, fp);
+        fread(&((pixel + i)->Green), sizeof(__int8), 1, fp);
+        fread(&((pixel + i)->Red), sizeof(__int8), 1, fp);
+    }
+
+    fclose(fp);
+
+    return EXIT_SUCCESS;
 }
