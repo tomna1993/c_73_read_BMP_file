@@ -83,6 +83,7 @@ BMP func_read_bmp_header(const char *file_name);
 void func_print_BMP_info(BMP picture_struct);
 __int8 func_read_data_array(PIXEL *pixel, const char *file_name, BMP *picture);
 void func_print_data_array(PIXEL *pixel, BMP *picture);
+__int8 func_create_bmp(const char *file_name, BMP *picture, PIXEL *pixel);
 
 
 int main(int argc, char **argv)
@@ -143,6 +144,9 @@ int main(int argc, char **argv)
     }
 
     func_print_data_array(pixel, &picture);
+
+
+    func_create_bmp("output.bmp", &picture, pixel);
 
     return EXIT_SUCCESS;
 }
@@ -314,6 +318,7 @@ void func_print_data_array(PIXEL *pixel, BMP *picture)
     {
         for(__int32 row = picture->Height; row > 0; row--)
         {
+            // Start printing from top-left pixel; print rows top-down 
             __int32 row_start = (row * picture->Width) - picture->Width;
             __int32 row_end = (row * picture->Width);
 
@@ -334,4 +339,87 @@ void func_print_data_array(PIXEL *pixel, BMP *picture)
             printf ("\n");
         } 
     }
+}
+
+
+__int8 func_create_bmp(const char *file_name, BMP *picture, PIXEL *pixel)
+{
+    FILE *fp = fopen(file_name, "wb");
+
+    if (fp == NULL)
+    {
+        printf ("Cannot open/create the file!\n");
+        return EXIT_FAILURE;
+    }
+
+    // 2 bytes to identify the BMP and DIB file
+    // For BMP it should be BM (0x42 0x4D in hexadecimal)
+    fwrite(&(picture->Id1), sizeof(picture->Id1), 1, fp);
+    fwrite(&(picture->Id2), sizeof(picture->Id2), 1, fp);
+
+    // Size of BMP file in bytes
+    fwrite(&(picture->Size), sizeof(picture->Size), 1, fp);
+
+    // 4 bytes reserved
+    fputc(0, fp);
+    fputc(0, fp);
+    fputc(0, fp);
+    fputc(0, fp);
+
+    // Starting address of the byte where the bitmap image data (pixel array) can be found
+    fwrite(&(picture->Data_array_address), sizeof(picture->Data_array_address), 1, fp);
+
+    // DIB (bitmap information header)
+    // Size of this header, in bytes (40)
+    fwrite(&(picture->Header_size), sizeof(picture->Header_size), 1, fp);
+
+    // Bitmap width in pixels (signed integer)
+    fwrite(&(picture->Width), sizeof(picture->Width), 1, fp);
+
+    // Bitmap height in pixels (signed integer)
+    fwrite(&(picture->Height), sizeof(picture->Height), 1, fp);
+
+    // Number of color planes (must be 1)
+    fwrite(&(picture->Color_planes), sizeof(picture->Color_planes), 1, fp);
+
+    // Number of bits per pixel
+    fwrite(&(picture->Bits_per_pixel), sizeof(picture->Bits_per_pixel), 1, fp);
+
+    // Compression method
+    fwrite(&(picture->Comp_method), sizeof(picture->Comp_method), 1, fp);
+
+    // Size of the raw bitmap data
+    fwrite(&(picture->Bitmap_size), sizeof(picture->Bitmap_size), 1, fp);
+
+    // Horizontal resolution of the image. (pixel per metre, signed integer)
+    fwrite(&(picture->H_res), sizeof(picture->H_res), 1, fp);
+
+    // Vertical resolution of the image. (pixel per metre, signed integer)
+    fwrite(&(picture->V_res), sizeof(picture->V_res), 1, fp);
+
+    // Number of colors in the color palette
+    fwrite(&(picture->Num_colors_palette), sizeof(picture->Num_colors_palette), 1, fp);
+
+    // Number of important colors
+    fwrite(&(picture->Num_imp_col), sizeof(picture->Num_imp_col), 1, fp);
+    
+    for (int i = 0; i < picture->Pixel_count; i++)
+    {
+        // After each row move the file pointer with number of padding bytes
+        if (i != 0 && (i % picture->Width) == 0)
+        {
+            for (int i = 0; i < picture->Num_bytes_padding; i++)
+            {
+                fputc(0, fp);
+            }
+        }
+
+        fwrite(&((pixel + i)->Blue), sizeof(__int8), 1, fp);
+        fwrite(&((pixel + i)->Green), sizeof(__int8), 1, fp);
+        fwrite(&((pixel + i)->Red), sizeof(__int8), 1, fp);
+    }
+
+    fclose(fp);
+
+    return EXIT_SUCCESS;
 }
