@@ -291,22 +291,47 @@ __int8 func_read_data_array(PIXEL *pixel, const char *file_name, BMP *picture)
 
 void func_print_data_array(PIXEL *pixel, BMP *picture)
 {
-    // picture->Is_top_down_method
-
-    for (int i = 0; i < picture->Pixel_count; i++)
+    if (picture->Is_top_down_method)
     {
-        if (i % picture->Width == 0)
+        for (int i = 0; i < picture->Pixel_count; i++)
         {
-            printf ("\n");
-        }
+            if (i % picture->Width == 0)
+            {
+                printf ("\n");
+            }
 
-        if((pixel + i)->Blue == 0 && (pixel + i)->Green == 0 && (pixel + i)->Red == 0)
-        {
-            printf("1 ");
+            if((pixel + i)->Blue == 0 && (pixel + i)->Green == 0 && (pixel + i)->Red == 0)
+            {
+                printf("1 ");
+            }
+            else
+            {
+                printf ("0 ");
+            }
         }
-        else
+    }
+    else
+    {
+        for(__int32 row = picture->Height; row > 0; row--)
         {
-            printf ("0 ");
-        }
+            __int32 row_start = (row * picture->Width) - picture->Width;
+            __int32 row_end = (row * picture->Width);
+
+            for (int i = row_start; i < row_end; i++)
+            {
+                if(( pixel + i)->Blue     == 0 && 
+                    (pixel + i)->Green    == 0 && 
+                    (pixel + i)->Red      == 0)
+                {
+                    printf("1 ");
+                }
+                else
+                {
+                    printf ("0 ");
+                }
+            }
+
+            printf ("\n");
+        } 
     }
 }
