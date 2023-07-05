@@ -84,6 +84,7 @@ void func_print_BMP_info(BMP picture_struct);
 __int8 func_read_data_array(PIXEL *pixel, const char *file_name, BMP *picture);
 void func_print_data_array(PIXEL *pixel, BMP *picture);
 __int8 func_create_bmp(const char *file_name, BMP *picture, PIXEL *pixel);
+void func_change_color(BMP *picture, PIXEL *pixel, __int8 blue, __int8 green, __int8 red);
 
 
 int main(int argc, char **argv)
@@ -144,6 +145,8 @@ int main(int argc, char **argv)
     }
 
     func_print_data_array(pixel, &picture);
+
+    func_change_color(&picture, pixel, 27, 154, 255);
 
 
     func_create_bmp("output.bmp", &picture, pixel);
@@ -341,7 +344,6 @@ void func_print_data_array(PIXEL *pixel, BMP *picture)
     }
 }
 
-
 __int8 func_create_bmp(const char *file_name, BMP *picture, PIXEL *pixel)
 {
     FILE *fp = fopen(file_name, "wb");
@@ -419,7 +421,28 @@ __int8 func_create_bmp(const char *file_name, BMP *picture, PIXEL *pixel)
         fwrite(&((pixel + i)->Red), sizeof(__int8), 1, fp);
     }
 
+    if (picture->Num_bytes_padding > 0)
+    {
+        for (int i = 0; i < picture->Num_bytes_padding; i++)
+        {
+            fputc(0, fp);
+        }
+    }
+
     fclose(fp);
 
     return EXIT_SUCCESS;
+}
+
+void func_change_color(BMP *picture, PIXEL *pixel, __int8 blue, __int8 green, __int8 red)
+{
+    for (int i = 0; i < picture->Pixel_count; i++)
+    {
+        if((pixel + i)->Blue == 0 && (pixel + i)->Green == 0 && (pixel + i)->Red == 0)
+        {
+            (pixel + i)->Blue   = blue;
+            (pixel + i)->Green  = green;
+            (pixel + i)->Red    = red;
+        }
+    }
 }
