@@ -79,7 +79,7 @@ typedef struct PIXEL
 }
 PIXEL;
 
-BMP func_read_bmp_header(const char *file_name);
+__int8 func_read_bmp_header(const char *file_name, BMP *picture);
 void func_print_BMP_info(BMP picture_struct);
 __int8 func_read_data_array(PIXEL *pixel, const char *file_name, BMP *picture);
 void func_print_data_array(PIXEL *pixel, BMP *picture);
@@ -97,7 +97,13 @@ int main(int argc, char **argv)
     
     BMP picture;
 
-    picture = func_read_bmp_header(argv[1]);
+    __int8 is_error = func_read_bmp_header(argv[1], &picture);
+
+    if (is_error == EXIT_FAILURE)
+    {
+        printf ("Opening the BMP file failed!\n");
+        return EXIT_FAILURE;
+    }
 
     func_print_BMP_info(picture);
 
@@ -136,7 +142,7 @@ int main(int argc, char **argv)
     // make it work with memory allocation
     PIXEL *pixel = calloc(picture.Byte_count, sizeof(__int8));
 
-    __int8 is_error = func_read_data_array(pixel, argv[1], &picture);
+    is_error = func_read_data_array(pixel, argv[1], &picture);
 
     if (is_error == EXIT_FAILURE)
     {
@@ -149,74 +155,84 @@ int main(int argc, char **argv)
     func_change_color(&picture, pixel, 27, 154, 255);
 
 
-    func_create_bmp("output.bmp", &picture, pixel);
+    is_error = func_create_bmp("output.bmp", &picture, pixel);
+
+    if (is_error == EXIT_FAILURE)
+    {
+        printf ("Creating the BMP file failed!\n");
+        return EXIT_FAILURE;
+    }
 
     return EXIT_SUCCESS;
 }
 
-BMP func_read_bmp_header(const char *file_name)
+__int8 func_read_bmp_header(const char *file_name, BMP *picture)
 {
     FILE *fp = fopen(file_name, "rb");
-
-    BMP header;
 
     if (fp == NULL)
     {
         printf ("Cannot open the file!\n");
-        return header;
+        return EXIT_FAILURE;
     }
 
     // 2 bytes to identify the BMP and DIB file
     // For BMP it should be BM (0x42 0x4D in hexadecimal)
-    fread(&header.Id1, sizeof(header.Id1), 1, fp);
-    fread(&header.Id2, sizeof(header.Id2), 1, fp);
+    fread(&(picture->Id1), sizeof(picture->Id1), 1, fp);
+    fread(&(picture->Id2), sizeof(picture->Id2), 1, fp);
+
+    if (picture->Id1 != 'B' && picture->Id2 != 'M')
+    {
+        printf ("File is not a BMP picture!\n");
+        return EXIT_FAILURE;
+    }
 
     // Size of BMP file in bytes
-    fread(&header.Size, sizeof(header.Size), 1, fp);
+    fread(&(picture->Size), sizeof(picture->Size), 1, fp);
 
     // 4 bytes reserved
     fseek(fp, sizeof(__int32), SEEK_CUR);
 
     // Starting address of the byte where the bitmap image data (pixel array) can be found
-    fread(&header.Data_array_address, sizeof(header.Data_array_address), 1, fp);
+    fread(&(picture->Data_array_address), sizeof(picture->Data_array_address), 1, fp);
 
     // DIB (bitmap information header)
     // Size of this header, in bytes (40)
-    fread(&header.Header_size, sizeof(header.Header_size), 1, fp);
+    fread(&(picture->Header_size), sizeof(picture->Header_size), 1, fp);
 
     // Bitmap width in pixels (signed integer)
-    fread(&header.Width, sizeof(header.Width), 1, fp);
+    fread(&(picture->Width), sizeof(picture->Width), 1, fp);
 
     // Bitmap height in pixels (signed integer)
-    fread(&header.Height, sizeof(header.Height), 1, fp);
+    fread(&(picture->Height), sizeof(picture->Height), 1, fp);
 
     // Number of color planes (must be 1)
-    fread(&header.Color_planes, sizeof(header.Color_planes), 1, fp);
+    fread(&(picture->Color_planes), sizeof(picture->Color_planes), 1, fp);
 
     // Number of bits per pixel
-    fread(&header.Bits_per_pixel, sizeof(header.Bits_per_pixel), 1, fp);
+    fread(&(picture->Bits_per_pixel), sizeof(picture->Bits_per_pixel), 1, fp);
 
     // Compression method
-    fread(&header.Comp_method, sizeof(header.Comp_method), 1, fp);
+    fread(&(picture->Comp_method), sizeof(picture->Comp_method), 1, fp);
 
     // Size of the raw bitmap data
-    fread(&header.Bitmap_size, sizeof(header.Bitmap_size), 1, fp);
+    fread(&(picture->Bitmap_size), sizeof(picture->Bitmap_size), 1, fp);
 
     // Horizontal resolution of the image. (pixel per metre, signed integer)
-    fread(&header.H_res, sizeof(header.H_res), 1, fp);
+    fread(&(picture->H_res), sizeof(picture->H_res), 1, fp);
 
     // Vertical resolution of the image. (pixel per metre, signed integer)
-    fread(&header.V_res, sizeof(header.V_res), 1, fp);
+    fread(&(picture->V_res), sizeof(picture->V_res), 1, fp);
 
     // Number of colors in the color palette
-    fread(&header.Num_colors_palette, sizeof(header.Num_colors_palette), 1, fp);
+    fread(&(picture->Num_colors_palette), sizeof(picture->Num_colors_palette), 1, fp);
 
     // Number of important colors
-    fread(&header.Num_imp_col, sizeof(header.Num_imp_col), 1, fp);
+    fread(&(picture->Num_imp_col), sizeof(picture->Num_imp_col), 1, fp);
     
     fclose(fp);
 
-    return header;
+    return EXIT_SUCCESS;
 }
 
 void func_print_BMP_info(BMP picture_struct)
