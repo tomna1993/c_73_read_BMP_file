@@ -82,6 +82,7 @@ PIXEL;
 BMP func_read_bmp_header(const char *file_name);
 void func_print_BMP_info(BMP picture_struct);
 __int8 func_read_data_array(PIXEL *pixel, const char *file_name, BMP *picture);
+void func_print_data_array(PIXEL *pixel, BMP *picture);
 
 
 int main(int argc, char **argv)
@@ -104,7 +105,13 @@ int main(int argc, char **argv)
     // byte, f.e. the row has 1 pixel which contains 3 bytes (blue, green, red) then 
     // there will be a missing 4th byte. That has to be inserted at the end of the row.
     // Calculate the number of bytes to add after each row 
-    picture.Num_bytes_padding = 4 - ((picture.Width * BYTE_IN_PIXEL) % 4);
+    picture.Num_bytes_padding = (picture.Width * BYTE_IN_PIXEL) % 4;
+
+    if (picture.Num_bytes_padding != 0)
+    {
+        picture.Num_bytes_padding = 4 - picture.Num_bytes_padding;
+    }
+    
 
     // If picture.Height is negative then:
     // - read the file from top-left pixel; read rows left-rigth and top-down
@@ -135,22 +142,7 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    for (int i = 0; i < picture.Pixel_count; i++)
-    {
-        if (i % picture.Width == 0)
-        {
-            printf ("\n");
-        }
-
-        if((pixel + i)->Blue == 0 && (pixel + i)->Green == 0 && (pixel + i)->Red == 0)
-        {
-            printf("1 ");
-        }
-        else
-        {
-            printf ("0 ");
-        }
-    }
+    func_print_data_array(pixel, &picture);
 
     return EXIT_SUCCESS;
 }
@@ -295,4 +287,26 @@ __int8 func_read_data_array(PIXEL *pixel, const char *file_name, BMP *picture)
     fclose(fp);
 
     return EXIT_SUCCESS;
+}
+
+void func_print_data_array(PIXEL *pixel, BMP *picture)
+{
+    // picture->Is_top_down_method
+
+    for (int i = 0; i < picture->Pixel_count; i++)
+    {
+        if (i % picture->Width == 0)
+        {
+            printf ("\n");
+        }
+
+        if((pixel + i)->Blue == 0 && (pixel + i)->Green == 0 && (pixel + i)->Red == 0)
+        {
+            printf("1 ");
+        }
+        else
+        {
+            printf ("0 ");
+        }
+    }
 }
