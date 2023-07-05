@@ -15,3 +15,6 @@ Read BMP file's information into a structure.
 - create a structure to save all the BMP header and DIB infromation
 
 - read in all the BMP header information and print them on screen
+
+- read pixel data and print the image into the terminal window (use 1 for black pixels and 0 for white pixels)
+- change color of the black pixels and save the new BMP file
