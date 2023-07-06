@@ -1,7 +1,9 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
+#define MAX_FILENAME 100
 #define BYTE_IN_PIXEL 3
 
 typedef struct BMP
@@ -79,11 +81,11 @@ typedef struct PIXEL
 }
 PIXEL;
 
-__int8 func_read_bmp_header(const char *file_name, BMP *picture);
-void func_print_BMP_info(BMP picture_struct);
-__int8 func_read_data_array(PIXEL *pixel, const char *file_name, BMP *picture);
-void func_print_data_array(PIXEL *pixel, BMP *picture);
-__int8 func_create_bmp(const char *file_name, BMP *picture, PIXEL *pixel);
+__int8 func_read_bmp_header(BMP *picture, char file_name[MAX_FILENAME]);
+void func_print_BMP_info(BMP *picture);
+__int8 func_read_data_array(BMP *picture, PIXEL *pixel, char file_name[MAX_FILENAME]);
+void func_print_data_array(BMP *picture, PIXEL *pixel);
+__int8 func_create_bmp(BMP *picture, PIXEL *pixel, char file_name[MAX_FILENAME]);
 void func_change_color(BMP *picture, PIXEL *pixel, __int8 blue, __int8 green, __int8 red);
 
 
@@ -94,10 +96,14 @@ int main(int argc, char **argv)
         printf ("Usage: ./readBMP smiley.bmp\n");
         return EXIT_FAILURE;
     }
-    
-    BMP picture;
 
-    __int8 is_error = func_read_bmp_header(argv[1], &picture);
+    char file_name[MAX_FILENAME]; 
+    
+    strcpy_s (file_name, MAX_FILENAME * sizeof(char), argv[1]);
+    
+    BMP picture = { 0 }; // create picture structure and clear all values
+
+    __int8 is_error = func_read_bmp_header(&picture, file_name);
 
     if (is_error == EXIT_FAILURE)
     {
@@ -105,7 +111,7 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    func_print_BMP_info(picture);
+    func_print_BMP_info(&picture);
 
 
 
@@ -142,7 +148,7 @@ int main(int argc, char **argv)
     // make it work with memory allocation
     PIXEL *pixel = calloc(picture.Byte_count, sizeof(__int8));
 
-    is_error = func_read_data_array(pixel, argv[1], &picture);
+    is_error = func_read_data_array(&picture, pixel, file_name);
 
     if (is_error == EXIT_FAILURE)
     {
@@ -151,12 +157,15 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    func_print_data_array(pixel, &picture);
+    func_print_data_array(&picture, pixel);
 
-    func_change_color(&picture, pixel, 27, 154, 255);
+    func_change_color(&picture, pixel, 230, 58, 1);
 
+    char output_file_name[MAX_FILENAME];
 
-    is_error = func_create_bmp("output.bmp", &picture, pixel);
+    strcpy_s (output_file_name, MAX_FILENAME * sizeof(char), "output.bmp");
+
+    is_error = func_create_bmp(&picture, pixel, output_file_name);
 
     if (is_error == EXIT_FAILURE)
     {
@@ -170,7 +179,7 @@ int main(int argc, char **argv)
     return EXIT_SUCCESS;
 }
 
-__int8 func_read_bmp_header(const char *file_name, BMP *picture)
+__int8 func_read_bmp_header(BMP *picture, char file_name[MAX_FILENAME])
 {
     FILE *fp = fopen(file_name, "rb");
 
@@ -239,54 +248,54 @@ __int8 func_read_bmp_header(const char *file_name, BMP *picture)
     return EXIT_SUCCESS;
 }
 
-void func_print_BMP_info(BMP picture_struct)
+void func_print_BMP_info(BMP *picture)
 {
     // 2 bytes to identify the BMP and DIB file
     // For BMP it should be BM (0x42 0x4D in hexadecimal)
-    printf("BMP identification: %c%c\n", picture_struct.Id1, picture_struct.Id2);
+    printf("BMP identification: %c%c\n", picture->Id1, picture->Id2);
 
     // Size of BMP file in bytes
-    printf("Size: %i\n", picture_struct.Size);
+    printf("Size: %i\n", picture->Size);
 
     // Starting address of the byte where the bitmap image data (pixel array) can be found
-    printf("Bitmap image data starting address: %x\n", picture_struct.Data_array_address);
+    printf("Bitmap image data starting address: %x\n", picture->Data_array_address);
 
     // DIB (bitmap information header)
     // Size of this header, in bytes (40)
-    printf("Size of DIB header: %i\n", picture_struct.Header_size);
+    printf("Size of DIB header: %i\n", picture->Header_size);
 
     // Bitmap width in pixels (signed integer)
-    printf("BMP width: %i\n", picture_struct.Width);
+    printf("BMP width: %i\n", picture->Width);
 
     // Bitmap height in pixels (signed integer)
-    printf("BMP height: %i\n", picture_struct.Height);
+    printf("BMP height: %i\n", picture->Height);
 
     // Number of color planes (must be 1)
-    printf("Number of color planes: %i\n", picture_struct.Color_planes);
+    printf("Number of color planes: %i\n", picture->Color_planes);
 
     // Number of bits per pixel
-    printf("Number of bits per pixel: %i\n", picture_struct.Bits_per_pixel);
+    printf("Number of bits per pixel: %i\n", picture->Bits_per_pixel);
 
     // Compression method
-    printf("Compression method: %i\n", picture_struct.Comp_method);
+    printf("Compression method: %i\n", picture->Comp_method);
 
     // Size of the raw bitmap data
-    printf("Size of the raw bitmap data: %i\n", picture_struct.Bitmap_size);
+    printf("Size of the raw bitmap data: %i\n", picture->Bitmap_size);
 
     // Horizontal resolution of the image. (pixel per metre, signed integer)
-    printf("Horizontal resolution: %i\n", picture_struct.H_res);
+    printf("Horizontal resolution: %i\n", picture->H_res);
 
     // Vertical resolution of the image. (pixel per metre, signed integer)
-    printf("Vertical resolution: %i\n", picture_struct.V_res);
+    printf("Vertical resolution: %i\n", picture->V_res);
 
     // Number of colors in the color palette
-    printf("Number of colors in the color palette: %i\n", picture_struct.Num_colors_palette);
+    printf("Number of colors in the color palette: %i\n", picture->Num_colors_palette);
 
     // Number of important colors
-    printf("Number of important colors: %i\n", picture_struct.Num_imp_col);
+    printf("Number of important colors: %i\n", picture->Num_imp_col);
 }
 
-__int8 func_read_data_array(PIXEL *pixel, const char *file_name, BMP *picture)
+__int8 func_read_data_array(BMP *picture, PIXEL *pixel, char file_name[MAX_FILENAME])
 {
     FILE *fp = fopen(file_name, "rb");
 
@@ -316,7 +325,7 @@ __int8 func_read_data_array(PIXEL *pixel, const char *file_name, BMP *picture)
     return EXIT_SUCCESS;
 }
 
-void func_print_data_array(PIXEL *pixel, BMP *picture)
+void func_print_data_array(BMP *picture, PIXEL *pixel)
 {
     if (picture->Is_top_down_method)
     {
@@ -364,7 +373,7 @@ void func_print_data_array(PIXEL *pixel, BMP *picture)
     }
 }
 
-__int8 func_create_bmp(const char *file_name, BMP *picture, PIXEL *pixel)
+__int8 func_create_bmp(BMP *picture, PIXEL *pixel, char file_name[MAX_FILENAME])
 {
     FILE *fp = fopen(file_name, "wb");
 
