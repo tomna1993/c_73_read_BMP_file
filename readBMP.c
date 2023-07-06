@@ -4,7 +4,6 @@
 #include <string.h>
 
 #define MAX_FILENAME 100
-#define BYTE_IN_PIXEL 3
 
 typedef struct BMP
 {
@@ -55,6 +54,8 @@ typedef struct BMP
     // Number of important colors
     __int32 Num_imp_col;
 
+    __int8 Num_bytes_in_pixel;
+
     // Each row length of the BMP mut be a multiple of four bytes. If there is a missing
     // byte, f.e. the row has 1 pixel which contains 3 bytes (blue, green, red) then 
     // there will be a missing 4th byte. That has to be inserted at the end of the row.
@@ -81,12 +82,12 @@ typedef struct PIXEL
 }
 PIXEL;
 
-__int8 func_read_bmp_header(BMP *picture, char file_name[MAX_FILENAME]);
-void func_print_BMP_info(BMP *picture);
-__int8 func_read_data_array(BMP *picture, PIXEL *pixel, char file_name[MAX_FILENAME]);
-void func_print_data_array(BMP *picture, PIXEL *pixel);
-__int8 func_create_bmp(BMP *picture, PIXEL *pixel, char file_name[MAX_FILENAME]);
-void func_change_color(BMP *picture, PIXEL *pixel, __int8 blue, __int8 green, __int8 red);
+__int8  func_read_bmp_header(BMP *picture, char file_name[MAX_FILENAME]);
+void    func_print_BMP_info(BMP *picture);
+__int8  func_read_data_array(BMP *picture, PIXEL *pixel, char file_name[MAX_FILENAME]);
+void    func_print_data_array(BMP *picture, PIXEL *pixel);
+__int8  func_create_bmp(BMP *picture, PIXEL *pixel, char file_name[MAX_FILENAME]);
+void    func_change_color(BMP *picture, PIXEL *pixel, __int8 blue, __int8 green, __int8 red);
 
 
 int main(int argc, char **argv)
@@ -99,9 +100,9 @@ int main(int argc, char **argv)
 
     char file_name[MAX_FILENAME]; 
     
-    strcpy_s (file_name, MAX_FILENAME * sizeof(char), argv[1]);
+    strcpy_s (file_name, MAX_FILENAME, argv[1]);
     
-    BMP picture = { 0 }; // create picture structure and clear all values
+    BMP picture = { 0 }; // clear all values
 
     __int8 is_error = func_read_bmp_header(&picture, file_name);
 
@@ -113,13 +114,15 @@ int main(int argc, char **argv)
 
     func_print_BMP_info(&picture);
 
+    picture.Num_bytes_in_pixel = picture.Bits_per_pixel / 8;
+
 
 
     // Each row length of the BMP mut be a multiple of four bytes. If there is a missing
     // byte, f.e. the row has 1 pixel which contains 3 bytes (blue, green, red) then 
     // there will be a missing 4th byte. That has to be inserted at the end of the row.
     // Calculate the number of bytes to add after each row 
-    picture.Num_bytes_padding = (picture.Width * BYTE_IN_PIXEL) % 4;
+    picture.Num_bytes_padding = (picture.Width * picture.Num_bytes_in_pixel) % 4;
 
     if (picture.Num_bytes_padding != 0)
     {
@@ -143,10 +146,16 @@ int main(int argc, char **argv)
     }
 
     // Declare them to be constants just to be shure I don't modify them later
-    picture.Byte_count = picture.Pixel_count * BYTE_IN_PIXEL;
+    picture.Byte_count = picture.Pixel_count * picture.Num_bytes_in_pixel;
 
     // make it work with memory allocation
     PIXEL *pixel = calloc(picture.Byte_count, sizeof(__int8));
+
+    if (pixel == NULL)
+    {
+        printf ("Allocating memory failed!!\n");
+        return EXIT_FAILURE;
+    }
 
     is_error = func_read_data_array(&picture, pixel, file_name);
 
@@ -154,6 +163,7 @@ int main(int argc, char **argv)
     {
         printf ("Reading the BMP data failed!\n");
         free(pixel);
+        pixel = NULL;
         return EXIT_FAILURE;
     }
 
@@ -163,7 +173,7 @@ int main(int argc, char **argv)
 
     char output_file_name[MAX_FILENAME];
 
-    strcpy_s (output_file_name, MAX_FILENAME * sizeof(char), "output.bmp");
+    strcpy_s (output_file_name, MAX_FILENAME, "output.bmp");
 
     is_error = func_create_bmp(&picture, pixel, output_file_name);
 
@@ -171,10 +181,12 @@ int main(int argc, char **argv)
     {
         printf ("Creating the BMP file failed!\n");
         free(pixel);
+        pixel = NULL;
         return EXIT_FAILURE;
     }
 
     free(pixel);
+    pixel = NULL;
 
     return EXIT_SUCCESS;
 }
@@ -356,7 +368,7 @@ void func_print_data_array(BMP *picture, PIXEL *pixel)
 
             for (int i = row_start; i < row_end; i++)
             {
-                if(( pixel + i)->Blue     == 0 && 
+                if( (pixel + i)->Blue     == 0 && 
                     (pixel + i)->Green    == 0 && 
                     (pixel + i)->Red      == 0)
                 {
@@ -450,6 +462,8 @@ __int8 func_create_bmp(BMP *picture, PIXEL *pixel, char file_name[MAX_FILENAME])
         fwrite(&((pixel + i)->Red), sizeof(__int8), 1, fp);
     }
 
+    // Insert padding bytes after the last data is inserted 
+    // (they won't be inserted in the for loop above)
     if (picture->Num_bytes_padding > 0)
     {
         for (int i = 0; i < picture->Num_bytes_padding; i++)
