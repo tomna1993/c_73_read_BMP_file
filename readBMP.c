@@ -147,6 +147,7 @@ int main(int argc, char **argv)
     if (is_error == EXIT_FAILURE)
     {
         printf ("Reading the BMP data failed!\n");
+        free(pixel);
         return EXIT_FAILURE;
     }
 
@@ -160,8 +161,11 @@ int main(int argc, char **argv)
     if (is_error == EXIT_FAILURE)
     {
         printf ("Creating the BMP file failed!\n");
+        free(pixel);
         return EXIT_FAILURE;
     }
+
+    free(pixel);
 
     return EXIT_SUCCESS;
 }
